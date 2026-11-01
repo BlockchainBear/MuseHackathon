@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Env and secrets — never commit real keys
+.env
+.env*.local
+.env.local
+
+# Logs and OS artifacts
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Generated local artifacts
+*.zip
+world-kit-*/
+coverage/
+tsconfig.tsbuildinfo
