@@ -14,6 +14,9 @@ import {
   worldUserPrompt,
 } from "@/lib/provider";
 
+/** Vercel function cap: 300s is valid on Hobby–Enterprise (Fluid default). */
+export const maxDuration = 300;
+
 const RequestSchema = z.object({
   idea: z.string().trim().min(4).max(2000),
   genre: z.string().trim().min(1).max(60).default("Unspecified"),

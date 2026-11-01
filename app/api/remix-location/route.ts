@@ -7,6 +7,9 @@ import {
   callTextModel,
 } from "@/lib/provider";
 
+/** Vercel function cap: 300s is valid on Hobby–Enterprise (Fluid default). */
+export const maxDuration = 300;
+
 const RequestSchema = z.object({
   world: WorldSchema,
   locationId: z.string().min(1).max(48),

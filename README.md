@@ -128,9 +128,26 @@ No prices are shown in-app — see the Model API dashboard for billing.
 6. Export **JSON**, **SVG**, **World Kit ZIP**; try **Print / Save as PDF**
 7. Add `MODEL_API_KEY` to `.env.local`, restart, then **Generate World** for live mode
 
+## Vercel deployment (team use)
+
+Vercel auto-detects the Next.js preset; no config file needed. Required settings:
+
+- **Environment variable** (Production + Preview): `MODEL_API_KEY=LLM_<id>_<secret>`.
+  Plain server variable — never `NEXT_PUBLIC_`. The browser only sees a boolean flag.
+- **Node.js**: 18.17+ (Vercel default is fine).
+- **Function duration**: the three API routes export `maxDuration = 300`, valid on
+  Hobby–Enterprise with Fluid Compute (default for new projects). Internal fetch
+  timeouts are 120s (text/remix) and 240s (image), inside that cap.
+- No app-imposed quotas or rate limits are configured, per team decision.
+  Duplicate submissions are prevented client-side (buttons disable in flight,
+  one pending request per location, sequential image queue).
+
+> Exposure note: with no login, anyone holding the deployment URL can trigger
+> billed model calls. Share the URL narrowly, use a dedicated key you can rotate,
+> and watch usage in the Model API dashboard.
+
 ## Public deployment security requirements
 
-Do **not** publicly deploy this app as-is with a key configured: its API routes would
-become an unprotected proxy to your billed key. Before any public deployment, add
-authentication, per-user rate limiting, server-side usage quotas/caps, and abuse
-monitoring — or keep it local-only.
+For any broadly public deployment (beyond a trusted team URL), add authentication,
+per-user rate limiting, server-side usage quotas/caps, and abuse monitoring first —
+otherwise the API routes are an unprotected proxy to your billed key.

@@ -3,6 +3,9 @@ import { z } from "zod";
 import { WorldSchema, formatZodError } from "@/lib/schema";
 import { ProviderError, buildImagePrompt, callImageModel } from "@/lib/provider";
 
+/** Vercel function cap: 300s is valid on Hobby–Enterprise (Fluid default). */
+export const maxDuration = 300;
+
 const RequestSchema = z.object({
   world: WorldSchema,
   locationId: z.string().min(1).max(48),
