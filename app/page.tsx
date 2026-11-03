@@ -7,10 +7,12 @@ import {
   formatZodError,
   positionsFor,
   type MapPos,
+  type Platform,
   type World,
   type WorldDoc,
 } from "@/lib/schema";
-import { makeSampleDoc } from "@/lib/sample";
+import { buildPlatformsMd } from "@/lib/platforms";
+import { SAMPLE_ART, makeSampleDoc } from "@/lib/sample";
 import {
   base64ToBlob,
   deleteWorld as dbDeleteWorld,
@@ -35,6 +37,7 @@ import {
   downloadText,
   slugify,
 } from "@/lib/exporters";
+import { AppNav } from "@/components/AppNav";
 import { CreateView } from "@/components/CreateView";
 import { SavedView } from "@/components/SavedView";
 import { WorkspaceView, type SaveStatus } from "@/components/WorkspaceView";
@@ -60,12 +63,13 @@ function newWorldId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function docFromWorld(world: World, source: WorldDoc["source"]): WorldDoc {
+function docFromWorld(world: World, source: WorldDoc["source"], platforms: Platform[]): WorldDoc {
   return {
     world,
     positions: positionsFor(world.locations.map((l) => l.id)),
     imageState: {},
     source,
+    platforms,
   };
 }
 
@@ -204,7 +208,7 @@ export default function Home() {
 
   /* ------------------------- generation ------------------------- */
   const handleGenerateWorld = React.useCallback(
-    async (idea: string, genre: string, tone: string) => {
+    async (idea: string, genre: string, tone: string, platforms: Platform[]) => {
       if (generating) return;
       setGenerating(true);
       setCreateError(null);
@@ -226,7 +230,7 @@ export default function Home() {
           );
           return;
         }
-        const next = docFromWorld(parsed.data, "live");
+        const next = docFromWorld(parsed.data, "live", platforms);
         await putWorld(next);
         await openDoc(next);
       } catch {
@@ -248,7 +252,43 @@ export default function Home() {
       /* sample still opens even if the save fails */
     });
     void openDoc(sample);
-  }, [openDoc]);
+    // Fill in bundled sample art (labeled SAMPLE ART, never live art).
+    void (async () => {
+      const worldId = sample.world.id;
+      let filled = false;
+      for (const loc of sample.world.locations) {
+        const path = SAMPLE_ART[loc.id];
+        if (!path) continue;
+        try {
+          const res = await fetch(path);
+          if (!res.ok) continue;
+          const blob = await res.blob();
+          const stamped = new Date().toISOString();
+          await putImage({
+            key: `${worldId}/${loc.id}`,
+            worldId,
+            locationId: loc.id,
+            mime: blob.type || "image/jpeg",
+            blob,
+            updatedAt: stamped,
+          });
+          const url = await getImageUrl(worldId, loc.id);
+          if (docRef.current?.world.id !== worldId) continue;
+          if (url) setImageUrls((prev) => ({ ...prev, [loc.id]: url }));
+          setDoc((prev) => {
+            if (!prev || prev.world.id !== worldId) return prev;
+            const next = structuredClone(prev);
+            next.imageState[loc.id] = { status: "ready", updatedAt: stamped, bundled: true };
+            return next;
+          });
+          filled = true;
+        } catch {
+          /* art stays empty; user can generate live art instead */
+        }
+      }
+      if (filled && docRef.current?.world.id === worldId) void persistNow();
+    })();
+  }, [openDoc, persistNow]);
 
   /* ------------------------- remix ------------------------- */
   const handleRemix = React.useCallback(
@@ -540,6 +580,7 @@ export default function Home() {
       zip.file("world.json", buildWorldJson(current));
       zip.file("map.svg", buildMapSvg(current));
       zip.file("world-bible.md", buildWorldBibleMd(current));
+      zip.file("platforms.md", buildPlatformsMd(current));
       zip.file("README.md", buildKitReadme(current));
       for (const loc of current.world.locations) {
         const st = current.imageState[loc.id]?.status;
@@ -586,6 +627,22 @@ export default function Home() {
     await persistNow();
     goSaved();
   }, [persistNow, goSaved]);
+
+  /** Shell navigation: never strand unsaved work — persist before leaving. */
+  const handleNavigate = React.useCallback(
+    (v: View) => {
+      if (v === "workspace") {
+        if (docRef.current) setView("workspace");
+        return;
+      }
+      if (v === "saved") {
+        void handleBackFromWorkspace();
+        return;
+      }
+      void persistNow().then(() => setView("create"));
+    },
+    [persistNow, handleBackFromWorkspace],
+  );
 
   const handleOpenSaved = React.useCallback(
     async (id: string) => {
@@ -681,6 +738,15 @@ export default function Home() {
   /* ------------------------- render ------------------------- */
   return (
     <main className="min-h-screen">
+      <div className="no-print">
+        <AppNav
+          view={view}
+          docOpen={doc !== null}
+          worldName={doc?.world.name ?? null}
+          onNavigate={handleNavigate}
+        />
+      </div>
+
       {view === "create" && (
         <div className="no-print">
           <CreateView
@@ -689,7 +755,6 @@ export default function Home() {
             liveReady={liveReady}
             onGenerate={handleGenerateWorld}
             onSample={handleSample}
-            onOpenSaved={goSaved}
             onImport={(f) => void handleImportFile(f)}
             onInteract={() => void ensureStatus()}
           />
@@ -706,7 +771,6 @@ export default function Home() {
             onRename={(id, name) => void handleRename(id, name)}
             onDuplicate={(id) => void handleDuplicate(id)}
             onDelete={(id) => void handleDelete(id)}
-            onBack={() => setView(doc ? "workspace" : "create")}
           />
         </div>
       )}
@@ -728,6 +792,7 @@ export default function Home() {
             onSelect: setSelectedId,
             onMove: handleMove,
             onEditWorld: editWorld,
+            onEditDoc: updateDoc,
             onRemix: (id, text) => void handleRemix(id, text),
             onGenerateImage: handleGenerateImage,
             onGenerateAllImages: () => void handleGenerateAllImages(),
@@ -739,7 +804,6 @@ export default function Home() {
             onExportSvg: handleExportSvg,
             onPrint: handlePrint,
             onExportZip: () => void handleExportZip(),
-            onBack: () => void handleBackFromWorkspace(),
           }}
         />
       )}

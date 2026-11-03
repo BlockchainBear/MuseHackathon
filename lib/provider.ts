@@ -252,6 +252,13 @@ export const REMIX_JSON_SCHEMA = {
   },
 } as const;
 
+export const BRAINSTORM_SYSTEM_PROMPT =
+  "You are a hype brainstorm partner for game worlds. The user pitches rough ideas; you riff back: " +
+  "sharpen the hook, offer one bold twist or a vivid detail, and keep momentum. " +
+  "Rules: under 90 words per reply. End every reply with exactly one short question OR one bold suggestion. " +
+  "No JSON, no markdown headings, no bullet lists longer than 3 items. Never claim you generated a world — " +
+  "the user clicks Generate World when the pitch is ready.";
+
 export const WORLD_SYSTEM_PROMPT =
   "You are WorldForge, a game-world concept planner. You design world bibles for video-game pre-production: " +
   "never a playable game, only planning material. Output must follow the required JSON schema exactly. " +
@@ -366,6 +373,71 @@ export async function callTextModel(params: TextCallParams): Promise<unknown> {
       true,
     );
   }
+}
+
+async function postJson(
+  url: string,
+  apiKey: string,
+  payload: unknown,
+  fetchFn?: typeof fetch,
+  timeoutMs = TEXT_TIMEOUT_MS,
+): Promise<Response> {
+  const init: RequestInit = {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  };
+  if (fetchFn) return fetchFn(url, init);
+  return fetchWithTimeout(url, init, timeoutMs);
+}
+
+export interface ChatTextParams {
+  system: string;
+  messages: { role: string; content: string }[];
+  maxTokens?: number;
+  fetchFn?: typeof fetch;
+  config?: ProviderConfig;
+  timeoutMs?: number;
+}
+
+/** Plain-text chat call (no JSON schema). Returns trimmed assistant text. */
+export async function callChatText(params: ChatTextParams): Promise<string> {
+  const config = params.config ?? getProviderConfig();
+  if (!config.apiKey) {
+    throw new ProviderError(
+      "not_configured",
+      "Brainstorm needs a MODEL_API_KEY in your private .env.local — or just type your idea below.",
+      503,
+      false,
+    );
+  }
+  const res = await postJson(
+    `${config.apiBase}/chat/completions`,
+    config.apiKey,
+    {
+      model: config.textModel,
+      messages: [{ role: "system", content: params.system }, ...params.messages],
+      max_tokens: params.maxTokens ?? 600,
+    },
+    params.fetchFn,
+    params.timeoutMs ?? 60_000,
+  );
+  if (!res.ok) throwForStatus(res, await readError(res));
+  const raw = await res.text();
+  if (raw.length > 200_000) {
+    throw new ProviderError("bad_output", "The model response was unexpectedly large.", 502, true);
+  }
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    throw new ProviderError("bad_output", "The model returned an unreadable response.", 502, true);
+  }
+  const text = extractJsonContent(body).trim().slice(0, 4000);
+  if (!text) {
+    throw new ProviderError("bad_output", "The model returned an empty reply. Try again.", 502, true);
+  }
+  return text;
 }
 
 interface ResponsesApiOutputItem {

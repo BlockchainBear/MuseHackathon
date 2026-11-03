@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #0a0c12;
+  background: #0a0c12 url(/art/backdrop.jpg) center / cover fixed no-repeat;
   color: #e8ecf4;
   font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -38,6 +38,13 @@ body {
 }
 select.field option {
   background: #11141d;
+}
+
+/* 16px+ inputs on phones: stops iOS auto-zoom on focus */
+@media (max-width: 640px) {
+  .field {
+    font-size: 1rem;
+  }
 }
 
 .tabular {

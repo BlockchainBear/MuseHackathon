@@ -21,3 +21,5 @@ Thumbs.db
 world-kit-*/
 coverage/
 tsconfig.tsbuildinfo
+generated_images/
+.vercel

@@ -136,6 +136,7 @@ export function buildWorldBibleMd(doc: WorldDoc): string {
     for (const item of c.items) lines.push(`- [ ] ${item}`);
     lines.push("");
   }
+  lines.push("## Creator Platforms", "", `Targets: ${doc.platforms.join(", ")}. See platforms.md in the ZIP kit for per-platform build guides.`, "");
   lines.push("## Production Prompts", "", "### Blender", "", w.blenderPrompt, "", "### Unreal (pre-production reference only — not playable levels)", "", w.unrealPrompt, "");
   lines.push("## Map Connections", "");
   if (w.connections.length === 0) lines.push("_No connections defined._", "");
@@ -156,6 +157,7 @@ export function buildKitReadme(doc: WorldDoc): string {
     `- world.json — full world content, map positions, metadata, schema version (no binary image data).`,
     `- map.svg — standalone location map with embedded styles.`,
     `- world-bible.md — readable world bible: locations, NPCs, quests, assets, production prompts.`,
+    `- platforms.md — Horizon Worlds / Roblox / Fortnite build guides with starter scripts.`,
     `- images/ — generated concept art PNG/WebP files (only locations with ready art are included).`,
     `- README.md — this file.`,
     ``,

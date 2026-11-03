@@ -154,10 +154,15 @@ export type MapPos = z.infer<typeof MapPosSchema>;
 export const ImageStatusSchema = z.enum(["none", "pending", "ready", "outdated", "failed"]);
 export type ImageStatus = z.infer<typeof ImageStatusSchema>;
 
+export const PlatformSchema = z.enum(["horizon", "roblox", "fortnite"]);
+export type Platform = z.infer<typeof PlatformSchema>;
+export const ALL_PLATFORMS: Platform[] = ["horizon", "roblox", "fortnite"];
+
 export const ImageMetaSchema = z.object({
   status: ImageStatusSchema,
   updatedAt: z.string().datetime({ offset: true }).optional(),
   error: z.string().max(300).optional(),
+  bundled: z.boolean().optional(),
 });
 export type ImageMeta = z.infer<typeof ImageMetaSchema>;
 
@@ -172,6 +177,7 @@ export const WorldDocSchema = z
     positions: z.record(MapPosSchema),
     imageState: z.record(ImageMetaSchema),
     source: z.enum(["live", "sample", "imported"]),
+    platforms: z.array(PlatformSchema).min(1).max(3).optional().default(["horizon", "roblox", "fortnite"]),
   })
   .superRefine((doc, ctx) => {
     for (const loc of doc.world.locations) {

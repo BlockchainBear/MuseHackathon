@@ -168,8 +168,18 @@ export function makeSampleDoc(): WorldDoc {
     positions: positionsFor(SAMPLE_WORLD.locations.map((l) => l.id)),
     imageState: {},
     source: "sample",
+    platforms: ["horizon", "roblox", "fortnite"],
   };
 }
+
+/** Bundled sample art shipped with the app (public/art). Labeled SAMPLE ART in the UI. */
+export const SAMPLE_ART: Record<string, string> = {
+  "loc-1": "/art/sample/loc-1.jpg",
+  "loc-2": "/art/sample/loc-2.jpg",
+  "loc-3": "/art/sample/loc-3.jpg",
+  "loc-4": "/art/sample/loc-4.jpg",
+  "loc-5": "/art/sample/loc-5.jpg",
+};
 
 /** Deterministic mock content for tests: valid content shaped like model output. */
 export function mockGeneratedContent(idea: string, genre: string, tone: string) {

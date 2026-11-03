@@ -6,17 +6,22 @@ not export playable Unreal or Fortnite levels.
 
 ## Features
 
-- Idea input with optional genre/tone + example chips
+- App shell: sticky New / Workspace / Saved navigation with the open world's name
+- Tap-first idea input: illustrated starter cards, visual genre grid, tone chips (typing optional)
+- Opt-in riff panel: chat + voice brainstorming with an AI partner, read-aloud replies, one-tap pitch capture
 - AI world generation: name, logline, overview, visual direction, 5 locations,
   3 NPCs with dialogue, 1 main + 3 side quests, asset checklist, Blender/Unreal prompts
-- Interactive SVG map (1000×700): click, drag, reset layout, add/remove connections
+- Interactive SVG map (1000×700): tap, drag, reset layout, tap-to-link paths, art thumbnails
 - Full editing: every generated field stays synchronized across map, detail, and tabs
-- AI location remix (“make it abandoned…”) — keeps ID/position, marks art outdated
+- AI location remix: one-tap flavors (Abandoned, Neon-lit, Haunted…) or custom prompt — keeps ID/position, marks art outdated
+- Responsive throughout: phone → desktop layouts, tap-sized pickers, no input auto-zoom on mobile
 - Concept art per location or “Generate All 5” (explicit clicks only, sequential queue)
 - IndexedDB saves: worlds + image blobs, autosave, rename/duplicate/delete
 - Exports: JSON, standalone SVG, ZIP world kit (`world.json`, `map.svg`,
   `world-bible.md`, `images/`, `README.md`), print / Save-as-PDF layout, JSON import
-- Offline sample world: **Neon Night Market** (always labeled SAMPLE)
+- Creator platform packs for **Horizon Worlds, Roblox, and Fortnite (UEFN)**: build plans, checklists, starter TypeScript/Luau/Verse scripts (planning scaffolds, not playable exports)
+- Offline sample world: **Neon Night Market** (always labeled SAMPLE, ships with bundled sample art)
+- Bundled art direction: hero panorama, nebula backdrop, and five sample location paintings in `public/art/`
 
 ## Limitations
 
@@ -115,7 +120,7 @@ No prices are shown in-app — see the Model API dashboard for billing.
 |---|---|
 | JSON | world content, positions, metadata, schema version (no image binaries) |
 | SVG | standalone map, embedded styles, readable labels |
-| ZIP | `world.json`, `map.svg`, `world-bible.md`, `images/`, `README.md` |
+| ZIP | `world.json`, `map.svg`, `world-bible.md`, `platforms.md`, `images/`, `README.md` |
 | Print | browser print layout → Save as PDF (title, overview, art, bible) |
 
 ## Demo walkthrough

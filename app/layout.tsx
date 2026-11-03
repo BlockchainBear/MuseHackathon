@@ -7,6 +7,12 @@ export const metadata: Metadata = {
     "Turn a game-world idea into an editable world bible, interactive map, and downloadable world kit.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0a0c12",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

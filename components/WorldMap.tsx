@@ -2,12 +2,17 @@
 
 import React from "react";
 import { MAP_HEIGHT, MAP_WIDTH, type MapPos, type WorldDoc } from "@/lib/schema";
+import { CATEGORY_COLORS } from "@/lib/scene-utils";
 
 interface WorldMapProps {
   doc: WorldDoc;
   selectedId: string | null;
   onSelect: (id: string) => void;
   onMove: (id: string, pos: MapPos) => void;
+  /** When set, tapping a node links it to this location instead of selecting it. */
+  linkFromId?: string | null;
+  onConnect?: (from: string, to: string) => void;
+  imageUrls?: Record<string, string>;
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -36,7 +41,7 @@ function wrapLabel(name: string, maxChars = 16): string[] {
  * Drag nodes with pointer events; a keyboard-accessible list below
  * provides the same selection for non-pointer users.
  */
-export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
+export function WorldMap({ doc, selectedId, onSelect, onMove, linkFromId = null, onConnect, imageUrls }: WorldMapProps) {
   const svgRef = React.useRef<SVGSVGElement>(null);
   const dragRef = React.useRef<{
     id: string;
@@ -76,12 +81,23 @@ export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
   const endDrag = (e: React.PointerEvent, id: string) => {
     const drag = dragRef.current;
     dragRef.current = null;
-    // Prevent accidental selection after a drag; plain clicks still select.
-    if (drag && !drag.moved) onSelect(id);
+    // Prevent accidental taps after a drag; plain taps select — or link in link mode.
+    if (drag && !drag.moved) {
+      if (linkFromId) onConnect?.(linkFromId, id);
+      else onSelect(id);
+    }
     e.preventDefault();
   };
 
   const { world, positions } = doc;
+  const categories = React.useMemo(() => {
+    const seen: string[] = [];
+    for (const l of world.locations) {
+      if (!seen.includes(l.category)) seen.push(l.category);
+    }
+    return seen;
+  }, [world.locations]);
+  const colorFor = (index: number) => CATEGORY_COLORS[index % CATEGORY_COLORS.length];
 
   return (
     <div>
@@ -92,12 +108,16 @@ export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
         role="application"
         aria-label={`Location map for ${world.name}. Drag nodes to rearrange, or use the location list below.`}
       >
-        {/* subtle grid */}
         <defs>
           <pattern id="wf-grid" width="50" height="50" patternUnits="userSpaceOnUse">
             <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#1a1f2e" strokeWidth="1" />
           </pattern>
+          <radialGradient id="wf-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#1b2340" />
+            <stop offset="100%" stopColor="#0a0c12" />
+          </radialGradient>
         </defs>
+        <rect x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#wf-glow)" rx="12" />
         <rect x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT} fill="url(#wf-grid)" rx="12" />
 
         {/* paths behind nodes */}
@@ -113,25 +133,25 @@ export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke={active ? "#22d3ee" : "#3b4358"}
+              stroke={active ? "#ffffff" : "#3b4358"}
               strokeWidth={active ? 3 : 2}
-              opacity={active ? 0.9 : 0.7}
+              opacity={active ? 0.95 : 0.7}
             />
           );
         })}
 
         {/* nodes */}
-        {world.locations.map((loc) => {
+        {world.locations.map((loc, li) => {
           const p = positions[loc.id];
           if (!p) return null;
           const selected = loc.id === selectedId;
+          const color = colorFor(li);
           const lines = wrapLabel(loc.name);
           return (
             <g
               key={loc.id}
               transform={`translate(${p.x}, ${p.y})`}
-              className="cursor-grab active:cursor-grabbing"
-              opacity={1}
+              className={linkFromId ? (loc.id === linkFromId ? "cursor-default" : "cursor-copy") : "cursor-grab active:cursor-grabbing"}
               onPointerDown={(e) => onNodePointerDown(e, loc.id)}
               onPointerMove={onNodePointerMove}
               onPointerUp={(e) => endDrag(e, loc.id)}
@@ -139,10 +159,17 @@ export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
                 dragRef.current = null;
               }}
             >
-              {selected && <circle r="34" fill="none" stroke="#a78bfa" strokeWidth="2" opacity="0.8" />}
-              <circle r="24" fill="#171b27" stroke={selected ? "#22d3ee" : "#3b4358"} strokeWidth={selected ? 3 : 2} />
-              <text y="6" textAnchor="middle" fill={selected ? "#22d3ee" : "#9aa3b2"} fontSize="15" fontWeight="700">
-                {loc.id.replace("loc-", "")}
+              <circle r="30" fill={color} opacity="0.14" />
+              {selected && !linkFromId && <circle r="35" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.9" />}
+              {linkFromId && loc.id !== linkFromId && (
+                <circle r="35" fill="none" stroke="#22d3ee" strokeWidth="2" strokeDasharray="5 4" opacity="0.85" />
+              )}
+              {linkFromId && loc.id === linkFromId && (
+                <circle r="35" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.9" />
+              )}
+              <circle r="24" fill="#141828" stroke={color} strokeWidth={selected ? 3.5 : 2.5} />
+              <text y="6" textAnchor="middle" fill={color} fontSize="15" fontWeight="700">
+                {li + 1}
               </text>
               {lines.map((ln, i) => (
                 <text
@@ -157,7 +184,7 @@ export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
                   {ln}
                 </text>
               ))}
-              <text y={44 + lines.length * 17} textAnchor="middle" fill="#7c8598" fontSize="11">
+              <text y={44 + lines.length * 17} textAnchor="middle" fill={color} fontSize="11" opacity="0.9">
                 {loc.category}
               </text>
             </g>
@@ -165,22 +192,59 @@ export function WorldMap({ doc, selectedId, onSelect, onMove }: WorldMapProps) {
         })}
       </svg>
 
-      {/* Keyboard-accessible alternative location list */}
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Select a location">
-        {world.locations.map((loc, i) => (
-          <button
-            key={loc.id}
-            onClick={() => onSelect(loc.id)}
-            aria-pressed={loc.id === selectedId}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-              loc.id === selectedId
-                ? "border-cyan-400 bg-cyan-400/10 text-cyan-300"
-                : "border-forge-line text-forge-dim hover:border-forge-purple/60 hover:text-slate-200"
-            }`}
-          >
-            {i + 1}. {loc.name}
-          </button>
-        ))}
+      {/* legend */}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1" aria-label="Map legend">
+        {categories.map((cat) => {
+          const idx = world.locations.findIndex((l) => l.category === cat);
+          return (
+            <span key={cat} className="inline-flex items-center gap-1.5 text-xs text-forge-dim">
+              <span
+                aria-hidden
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ background: colorFor(idx < 0 ? 0 : idx) }}
+              />
+              {cat}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Tap-friendly location picker (also the keyboard path) */}
+      <div
+        className="mt-2 flex flex-wrap gap-2"
+        role="group"
+        aria-label={linkFromId ? "Tap a location to link it" : "Select a location"}
+      >
+        {world.locations.map((loc, i) => {
+          const thumb = imageUrls?.[loc.id];
+          const isActive = linkFromId ? loc.id === linkFromId : loc.id === selectedId;
+          return (
+            <button
+              key={loc.id}
+              onClick={() => (linkFromId ? onConnect?.(linkFromId, loc.id) : onSelect(loc.id))}
+              aria-pressed={isActive}
+              className={`inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-xs font-semibold transition-colors ${
+                isActive
+                  ? "border-cyan-400 bg-cyan-400/10 text-cyan-300"
+                  : "border-forge-line text-forge-dim hover:border-cyan-400/50 hover:text-slate-200"
+              }`}
+            >
+              {thumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumb} alt="" aria-hidden className="h-5 w-5 rounded-full object-cover" loading="lazy" />
+              ) : (
+                <span
+                  aria-hidden
+                  className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-extrabold text-slate-950"
+                  style={{ background: colorFor(i) }}
+                >
+                  {i + 1}
+                </span>
+              )}
+              {loc.name}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import React from "react";
 import type { SavedWorldRow } from "@/lib/db";
 import { Button, Modal, Spinner } from "./ui";
+import { CopyIcon, EyeIcon, FolderIcon, PencilIcon, TrashIcon } from "./icons";
 
 interface SavedViewProps {
   worlds: SavedWorldRow[];
@@ -12,24 +13,24 @@ interface SavedViewProps {
   onRename: (id: string, name: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
-  onBack: () => void;
 }
 
-export function SavedView({ worlds, loading, error, onOpen, onRename, onDuplicate, onDelete, onBack }: SavedViewProps) {
+export function SavedView({ worlds, loading, error, onOpen, onRename, onDuplicate, onDelete }: SavedViewProps) {
   const [renaming, setRenaming] = React.useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = React.useState<SavedWorldRow | null>(null);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-bold tracking-[0.2em] text-cyan-400">WORLDFORGE LITE</p>
-          <h1 className="mt-1 text-2xl font-extrabold">Saved Worlds</h1>
-        </div>
-        <Button onClick={onBack}>Back</Button>
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-extrabold">Saved Worlds</h1>
+        {!loading && !error && worlds.length > 0 && (
+          <span className="tabular rounded-full bg-forge-panel2 px-2.5 py-0.5 text-xs font-bold text-forge-dim">
+            {worlds.length}
+          </span>
+        )}
       </div>
 
-      {loading && <Spinner label="Loading saved worlds…" />}
+      {loading && <Spinner label="Loading…" />}
       {error && (
         <div role="alert" className="rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
@@ -37,46 +38,48 @@ export function SavedView({ worlds, loading, error, onOpen, onRename, onDuplicat
       )}
 
       {!loading && !error && worlds.length === 0 && (
-        <p className="rounded-xl border border-forge-line bg-forge-panel p-6 text-center text-forge-dim">
-          No saved worlds yet. Generate a world or load the sample demo to begin.
-        </p>
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-forge-line bg-forge-panel p-10 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
+            <FolderIcon className="h-7 w-7" />
+          </span>
+          <p className="font-bold">No worlds yet</p>
+          <p className="max-w-xs text-sm text-forge-dim">Generate a world or load the sample to start building.</p>
+        </div>
       )}
 
-      <ul className="space-y-3">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {worlds.map((row) => (
           <li
             key={row.id}
-            className="flex flex-col gap-3 rounded-xl border border-forge-line bg-forge-panel p-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl border border-forge-line bg-forge-panel p-4"
           >
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-base font-bold">{row.doc.world.name}</p>
-              <p className="mt-0.5 text-xs text-forge-dim">
-                <span className="uppercase tracking-wide">{row.doc.source}</span>
-                {" · "}
-                {row.doc.world.genre} · {row.doc.world.tone}
-                {" · saved "}
-                {new Date(row.savedAt).toLocaleString()}
+              <p className="mt-0.5 text-xs uppercase tracking-wide text-forge-dim">
+                {row.doc.source} · {row.doc.world.genre} · {new Date(row.savedAt).toLocaleDateString()}
               </p>
               <p className="mt-1 line-clamp-2 text-sm text-forge-dim">{row.doc.world.logline}</p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
               <Button variant="primary" onClick={() => onOpen(row.id)}>
-                Open
+                <EyeIcon /> Open
               </Button>
-              <Button onClick={() => setRenaming({ id: row.id, name: row.doc.world.name })}>Rename</Button>
-              <Button onClick={() => onDuplicate(row.id)}>Duplicate</Button>
-              <Button variant="danger" onClick={() => setDeleting(row)}>
-                Delete
+              <Button onClick={() => setRenaming({ id: row.id, name: row.doc.world.name })} title="Rename">
+                <PencilIcon />
+                <span className="sm:hidden">Rename</span>
+              </Button>
+              <Button onClick={() => onDuplicate(row.id)} title="Duplicate">
+                <CopyIcon />
+                <span className="sm:hidden">Copy</span>
+              </Button>
+              <Button variant="danger" onClick={() => setDeleting(row)} title="Delete">
+                <TrashIcon />
+                <span className="sm:hidden">Delete</span>
               </Button>
             </div>
           </li>
         ))}
       </ul>
-
-      <p className="mt-4 text-xs leading-relaxed text-forge-dim">
-        Saves are stored in this browser&apos;s IndexedDB (this device only, including generated images).
-        Use Export → World Kit ZIP for portable backups.
-      </p>
 
       {renaming && (
         <Modal title="Rename world" onClose={() => setRenaming(null)}>
@@ -113,7 +116,7 @@ export function SavedView({ worlds, loading, error, onOpen, onRename, onDuplicat
         <Modal title="Delete world?" onClose={() => setDeleting(null)}>
           <p className="text-sm text-forge-dim">
             Permanently delete <strong className="text-slate-100">“{deleting.doc.world.name}”</strong> and its
-            saved images from this browser? This cannot be undone.
+            saved images? Cannot be undone.
           </p>
           <div className="mt-4 flex justify-end gap-2">
             <Button onClick={() => setDeleting(null)}>Cancel</Button>
@@ -124,7 +127,7 @@ export function SavedView({ worlds, loading, error, onOpen, onRename, onDuplicat
                 setDeleting(null);
               }}
             >
-              Delete permanently
+              <TrashIcon /> Delete
             </Button>
           </div>
         </Modal>

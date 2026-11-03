@@ -1,4 +1,5 @@
 import type { WorldDoc } from "@/lib/schema";
+import { PLATFORM_META } from "@/lib/platforms";
 
 /**
  * Print-only sheet for browser "Save as PDF". Rendered always, shown only
@@ -15,6 +16,7 @@ export function PrintSheet({ doc, imageUrls }: { doc: WorldDoc; imageUrls: Recor
       <p>
         {w.genre} · {w.tone} · Source: {doc.source}
       </p>
+      <p>Build targets: {doc.platforms.map((p) => PLATFORM_META[p].name).join(", ")}</p>
 
       <h2 style={{ fontSize: 18, fontWeight: 700, marginTop: 16 }}>Setting Overview</h2>
       <p>{w.overview}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { AlertIcon, MapIcon, SparklesIcon, UploadIcon, ZapIcon } from "./icons";
 
 /* ------------------------------ buttons ------------------------------ */
 
@@ -21,9 +22,24 @@ export function Button({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variantClass[variant]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variantClass[variant]} ${className}`}
       {...props}
     />
+  );
+}
+
+/* ------------------------------ brand ------------------------------ */
+
+export function Logo({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
+        <MapIcon className="h-4 w-4" />
+      </span>
+      {!compact && (
+        <span className="text-xs font-bold tracking-[0.2em] text-cyan-400">WORLDFORGE LITE</span>
+      )}
+    </span>
   );
 }
 
@@ -40,8 +56,9 @@ export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFo
 export function FieldError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <div role="alert" className="mt-3 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-      {message}
+    <div role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+      <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{message}</span>
     </div>
   );
 }
@@ -58,6 +75,28 @@ export function Spinner({ label = "Working…" }: { label?: string }) {
   );
 }
 
+/* ------------------------------ picker chips ------------------------------ */
+
+/** One-tap option chip: selected state is cyan, unselected is dim. Wraps in flex rows. */
+export function PickChip({
+  selected = false,
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { selected?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        selected
+          ? "border-cyan-400/70 bg-cyan-400/10 text-cyan-200"
+          : "border-forge-line text-forge-dim hover:border-cyan-400/50 hover:text-slate-100"
+      } ${className}`}
+      {...props}
+    />
+  );
+}
+
 /* ------------------------------ badges ------------------------------ */
 
 export function SourceBadge({ source }: { source: "live" | "sample" | "imported" }) {
@@ -67,12 +106,18 @@ export function SourceBadge({ source }: { source: "live" | "sample" | "imported"
     imported: "border-forge-purple/60 bg-forge-purple/10 text-forge-purple",
   };
   const labels: Record<string, string> = {
-    live: "LIVE-GENERATED",
-    sample: "SAMPLE DEMO",
+    live: "LIVE",
+    sample: "SAMPLE",
     imported: "IMPORTED",
   };
+  const icons: Record<string, React.ReactNode> = {
+    live: <SparklesIcon className="h-3 w-3" />,
+    sample: <ZapIcon className="h-3 w-3" />,
+    imported: <UploadIcon className="h-3 w-3" />,
+  };
   return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-wider ${styles[source]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-wider ${styles[source]}`}>
+      {icons[source]}
       {labels[source]}
     </span>
   );
@@ -80,11 +125,13 @@ export function SourceBadge({ source }: { source: "live" | "sample" | "imported"
 
 export function UsageWarning({ compact = false }: { compact?: boolean }) {
   return (
-    <p className={`text-amber-200/90 ${compact ? "text-xs" : "text-sm"}`} role="note">
-      <span aria-hidden>⚠ </span>
-      {compact
-        ? "Uses your Meta Model API key. Requests may incur charges."
-        : "Generation uses your private Meta Model API key and may incur charges. Requests fire only when you click — never automatically."}
+    <p className={`flex items-start gap-1.5 text-amber-200/90 ${compact ? "text-xs" : "text-sm"}`} role="note">
+      <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>
+        {compact
+          ? "Uses your API key · may incur charges · clicks only, never automatic."
+          : "Live generation uses your API key and may incur charges. It runs only when you click."}
+      </span>
     </p>
   );
 }
@@ -118,7 +165,7 @@ export function Modal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-xl border border-forge-line bg-forge-panel p-5 shadow-2xl">
+      <div className="nice-scroll max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-forge-line bg-forge-panel p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">{title}</h2>
           <button
